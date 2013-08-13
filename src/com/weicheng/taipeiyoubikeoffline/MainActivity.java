@@ -1,7 +1,7 @@
 package com.weicheng.taipeiyoubikeoffline;
 
-import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Scanner;
 
 import org.osmdroid.bonuspack.overlays.ExtendedOverlayItem;
@@ -13,10 +13,8 @@ import org.osmdroid.views.MapController;
 import org.osmdroid.views.MapView;
 
 import android.app.Activity;
-import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 
 public class MainActivity extends Activity {
@@ -40,7 +38,7 @@ public class MainActivity extends Activity {
         mapView.setMaxZoomLevel(16);
         
         //map range limit
-        BoundingBoxE6 boundingBox = new BoundingBoxE6(25.10, 121.62, 24.98, 121.48);
+        BoundingBoxE6 boundingBox = new BoundingBoxE6(25.10, 121.645, 24.98, 121.48);
         mapView.setScrollableAreaLimit(boundingBox);
         
         mapView.setUseDataConnection(false);
@@ -54,27 +52,49 @@ public class MainActivity extends Activity {
         Drawable marker = getResources().getDrawable(R.drawable.marker_node);
         final ArrayList<ExtendedOverlayItem> items = new ArrayList<ExtendedOverlayItem>();
         
-        //TODO read data from csv files
-        {
-        	Scanner scanner = new Scanner(getResources().openRawResource(R.raw.youbike), "UTF-8");
-        	scanner.useDelimiter(",");
+        //read bicycle station location data from csv files
+        Scanner scanner=null;
+        try{
+        	scanner = new Scanner(getResources().openRawResource(R.raw.youbike), "UTF-8");
         	
-        	 while (scanner.hasNext()) {
-        	     String chineseName = scanner.next();
-        	     String chineseDesc = scanner.next();
-        	     String name=scanner.next();
-        	     double lat = scanner.nextDouble();
-        	     double lng = scanner.nextDouble();
-        	     
-        	     Log.d(TAG,chineseName+":"+lat);
-        	 }
+        	//use hashset to remove duplicate records
+//        	HashSet<Station> stations = new HashSet<Station>();
+        	
+        	while (scanner.hasNextLine()) {
+        		String nextLine = scanner.nextLine();
+        		Scanner scannerNextLine=null;
+        		try
+        		{
+        			scannerNextLine = new Scanner(nextLine);
+        			scannerNextLine.useDelimiter(",");
+
+        			String chineseName = scannerNextLine.next();
+        			String chineseDesc = scannerNextLine.next();
+        			String name=scannerNextLine.next();
+        			int lat = scannerNextLine.nextInt();
+        			int lng = scannerNextLine.nextInt();
+
+//        			Station sta = new Station(chineseName, chineseDesc, name, lat, lng);
+
+        			ExtendedOverlayItem nodeMarker = new ExtendedOverlayItem(chineseName, chineseDesc, new GeoPoint(lat, lng), this);
+//        			nodeMarker.setMarkerHotspot(OverlayItem.HotspotPlace.CENTER);
+        			nodeMarker.setMarker(marker);
+        			items.add(nodeMarker);
+        		}finally{
+        			if(scannerNextLine!=null)
+        			{
+        				scannerNextLine.close();
+        			}
+        		}
+        	}
+        }finally
+        {
+        	if(scanner!=null)
+			{
+				scanner.close();
+			}
         }
         
-        ExtendedOverlayItem nodeMarker = new ExtendedOverlayItem("Taipei City Hall", "Nanjing MRT exit 1", gPt, this);
-//        nodeMarker.setMarkerHotspot(OverlayItem.HotspotPlace.CENTER);
-        nodeMarker.setMarker(marker);
-        items.add(nodeMarker);
-
         currentLocationOverlayBubble = new ItemizedOverlayWithBubble<ExtendedOverlayItem>(getApplicationContext(), items, mapView);
         mapView.getOverlays().add(currentLocationOverlayBubble);
         
