@@ -10,7 +10,6 @@ import org.osmdroid.util.BoundingBoxE6;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapController;
 import org.osmdroid.views.MapView;
-import org.osmdroid.views.overlay.Overlay;
 import org.osmdroid.views.overlay.OverlayItem;
 
 import android.app.Activity;
@@ -31,7 +30,6 @@ public class MainActivity extends Activity {
     private MapController   mapController;
     private ItemizedOverlayWithBubble<ExtendedOverlayItem> currentLocationOverlayBubble;
     private GeoPoint currentLocation;
-    private OverlayItem myCurrentLocationOverlayItem;
     private MyLocationListener locationListener;
     private LocationManager  locationManager;
     
@@ -65,7 +63,7 @@ public class MainActivity extends Activity {
         
         final ArrayList<ExtendedOverlayItem> items = new ArrayList<ExtendedOverlayItem>();
         
-//      TODO make sure user is within border of taipei map, else show general map
+//      make sure user is within border of taipei map, else show general map
         if( location != null) {
         	Log.d(TAG, "initial latitude:"+location.getLatitude());
         	Log.d(TAG, "initial longitude:"+location.getLongitude());
@@ -150,9 +148,14 @@ public class MainActivity extends Activity {
 
     public class MyLocationListener implements LocationListener {
     	public void onLocationChanged(Location location) {
-            currentLocation = new GeoPoint(location.getLatitude(), location.getLongitude());
-            mapController.setCenter(currentLocation);
-            mapView.invalidate();
+    		
+    		if(location.getLongitude()>=121.48 &&location.getLongitude()<=121.645
+        			&& location.getLatitude()>=24.98 && location.getLatitude()<=25.10)
+    		{
+    			currentLocation = new GeoPoint(location.getLatitude(), location.getLongitude());
+    			mapController.setCenter(currentLocation);
+    			mapView.invalidate();
+    		}
         }
 
 		@Override
