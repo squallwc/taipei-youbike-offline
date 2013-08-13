@@ -1,0 +1,8 @@
+# use glob syntax
+syntax: glob
+
+# Ignore patterns
+.metadata\
+bin\
+gen\
+.class
