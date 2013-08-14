@@ -90,7 +90,11 @@ public class MainActivity extends Activity {
         			//if fail to create directory
         			if(!osmDirectory.exists())
         			{
-        				throw new IOException("Error create directory "+Environment.getExternalStorageDirectory()+"/osmdroid/");
+        				osmDirectory.mkdir();
+        				if(!osmDirectory.exists())
+            			{
+        					throw new IOException("Error create directory "+Environment.getExternalStorageDirectory()+"/osmdroid/");
+            			}
         			}
         		}
         		
@@ -313,42 +317,10 @@ public class MainActivity extends Activity {
 	@Override
 	protected void onPause() {
 		super.onPause();
-		
+
 		if(locationManager!=null && locationListener!=null)
 		{
 			locationManager.removeUpdates(locationListener);
 		}
-		
-//		if(currentLocationOverlayBubble!=null)
-//		{
-//			mapView.getOverlays().remove(currentLocationOverlayBubble);	
-//			currentLocationOverlayBubble.removeAllItems();
-//			currentLocationOverlayBubble = null;
-//		}
 	}
-	
-//	@Override
-//	protected void onDestroy() {
-//		super.onDestroy();
-//		
-//		if(locationManager!=null && locationListener!=null)
-//		{
-//			locationManager.removeUpdates(locationListener);
-//		}
-		
-//		if(currentLocationOverlayBubble!=null)
-//		{
-//			mapView.getOverlays().remove(currentLocationOverlayBubble);	
-//			currentLocationOverlayBubble.removeAllItems();
-//			currentLocationOverlayBubble = null;
-//		}
-//	}
-	
-//	@Override
-//	protected void onStart() {
-//	    super.onStart();
-//	    locationListener = new MyLocationListener();
-//	    locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-//	    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
-//	}
 }
