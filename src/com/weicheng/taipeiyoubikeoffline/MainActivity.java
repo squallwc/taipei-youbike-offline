@@ -20,7 +20,6 @@ import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.OverlayItem;
 
 import android.app.Activity;
-import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -34,6 +33,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
@@ -314,6 +314,25 @@ public class MainActivity extends Activity {
         return true;
     }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.action_credits:
+            	new AlertDialog.Builder(this)
+        	    .setMessage("Thanks to www.iconfinder.com, www.softicons.com and www.iconarchive.com for the beautiful icons")
+        	    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+        	        public void onClick(DialogInterface dialog, int which) { 
+        	        	//do nothing
+        	        }
+        	     })
+        	     .show();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+    
 	@Override
 	protected void onPause() {
 		super.onPause();
