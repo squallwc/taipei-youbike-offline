@@ -1,10 +1,17 @@
 package com.weicheng.taipeiyoubikeoffline;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Scanner;
 
+import org.osmdroid.ResourceProxy.string;
 import org.osmdroid.bonuspack.overlays.ExtendedOverlayItem;
 import org.osmdroid.bonuspack.overlays.ItemizedOverlayWithBubble;
+import org.osmdroid.tileprovider.tilesource.BitmapTileSourceBase;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.BoundingBoxE6;
 import org.osmdroid.util.GeoPoint;
@@ -13,12 +20,18 @@ import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.OverlayItem;
 
 import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.res.Resources.NotFoundException;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.widget.Toast;
@@ -38,6 +51,74 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
+        //load map data
+        try{
+        	//check external storage
+        	boolean isExternalStorageAvailable = false;
+        	boolean isExternalStorageWriteable = false;
+        	String state = Environment.getExternalStorageState();
+
+        	if (Environment.MEDIA_MOUNTED.equals(state)) {
+        		// We can read and write the media
+        		isExternalStorageAvailable = isExternalStorageWriteable = true;
+        	} else if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+        		// We can only read the media
+        		isExternalStorageAvailable = true;
+        		isExternalStorageWriteable = false;
+        	} else {
+        		// Something else is wrong. It may be one of many other states, but all we need
+        		//  to know is we can neither read nor write
+        		isExternalStorageAvailable = isExternalStorageWriteable = false;
+        	}
+        	
+        	if(!isExternalStorageAvailable && !isExternalStorageWriteable)
+        	{
+        		showTransferErrorDialog();
+        	}
+        	else
+        	{
+        		Log.d(TAG, "getExternalStorageDirectory:"+Environment.getExternalStorageDirectory());
+        		
+        		//create the directory if not exist
+        		File osmDirectory = new File(Environment.getExternalStorageDirectory()+"/osmdroid/");
+        		Log.d(TAG, "osmDirectory.exists():"+osmDirectory.exists());
+        		if(!osmDirectory.exists())
+        		{
+        			osmDirectory.mkdir();
+        			Log.d(TAG, "osmDirectory.exists2():"+osmDirectory.exists());
+        			Log.d(TAG, "osmDirectory.isDirectory():"+osmDirectory.isDirectory());
+        			//if fail to create directory
+        			if(!osmDirectory.exists())
+        			{
+        				throw new IOException("Error create directory "+Environment.getExternalStorageDirectory()+"/osmdroid/");
+        			}
+        		}
+        		
+        		File zip1 = new File(Environment.getExternalStorageDirectory()+"/osmdroid/taipei_1.zip");
+        		File zip2 = new File(Environment.getExternalStorageDirectory()+"/osmdroid/taipei_2.zip");
+        		//check whether the map data exist
+        		if(!zip1.exists() || !zip2.exists())
+        		{
+        			Log.d(TAG, "map data not found");
+        			
+        			copyFile(getResources().openRawResource(R.raw.taipei_1), zip1);
+        			copyFile(getResources().openRawResource(R.raw.taipei_2), zip2);
+
+        			//restart activity to load the map tiles
+        			Log.d(TAG, "restart activity");
+        			Intent i = getBaseContext().getPackageManager().getLaunchIntentForPackage( getBaseContext().getPackageName() );
+        			i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        			startActivity(i);
+        		}
+        	}
+        }catch (NotFoundException e) {
+			Log.e(TAG, "Error loading map file", e);
+			showTransferErrorDialog();
+		}catch (IOException e) {
+			Log.e(TAG, "Error loading map file", e);
+			showTransferErrorDialog();
+		}
+    	
         mapView = (MapView) findViewById(R.id.mapview);
         mapView.setTileSource(TileSourceFactory.MAPNIK);
         mapView.setBuiltInZoomControls(true);
@@ -145,8 +226,59 @@ public class MainActivity extends Activity {
         
         mapView.invalidate();
     }
+    
+    class CustomTileSource extends BitmapTileSourceBase {
 
-    public class MyLocationListener implements LocationListener {
+        public CustomTileSource(String aName, string aResourceId,
+                int aZoomMinLevel, int aZoomMaxLevel, int aTileSizePixels,
+                String aImageFilenameEnding) {
+            super(aName, aResourceId, aZoomMinLevel, aZoomMaxLevel, aTileSizePixels,
+                    aImageFilenameEnding);
+        }
+
+    }
+    
+    private void showTransferErrorDialog()
+    {
+    	new AlertDialog.Builder(this)
+	    .setMessage("無法將地圖資料存到手機上")
+	    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+	        public void onClick(DialogInterface dialog, int which) { 
+	        	//do nothing
+	        }
+	     })
+	     .show();
+    }
+
+    private static void copyFile(InputStream in,File mapfile) throws IOException
+    {
+    	OutputStream out = null;
+    	try
+    	{
+    		out = new FileOutputStream(mapfile);
+
+    		// Transfer bytes from in to out
+    		byte[] buf = new byte[1024];
+    		int len;
+    		while ((len = in.read(buf)) > 0) {
+    			out.write(buf, 0, len);
+    		}
+    	}
+    	finally
+    	{
+    		if(in!=null)
+    		{
+    			in.close();
+    		}
+    		if(out!=null)
+    		{
+    			out.flush();
+    			out.close();
+    		}
+    	}
+    }
+    
+    private class MyLocationListener implements LocationListener {
     	public void onLocationChanged(Location location) {
     		
     		if(location.getLongitude()>=121.48 &&location.getLongitude()<=121.645
@@ -186,5 +318,37 @@ public class MainActivity extends Activity {
 		{
 			locationManager.removeUpdates(locationListener);
 		}
+		
+//		if(currentLocationOverlayBubble!=null)
+//		{
+//			mapView.getOverlays().remove(currentLocationOverlayBubble);	
+//			currentLocationOverlayBubble.removeAllItems();
+//			currentLocationOverlayBubble = null;
+//		}
 	}
+	
+//	@Override
+//	protected void onDestroy() {
+//		super.onDestroy();
+//		
+//		if(locationManager!=null && locationListener!=null)
+//		{
+//			locationManager.removeUpdates(locationListener);
+//		}
+		
+//		if(currentLocationOverlayBubble!=null)
+//		{
+//			mapView.getOverlays().remove(currentLocationOverlayBubble);	
+//			currentLocationOverlayBubble.removeAllItems();
+//			currentLocationOverlayBubble = null;
+//		}
+//	}
+	
+//	@Override
+//	protected void onStart() {
+//	    super.onStart();
+//	    locationListener = new MyLocationListener();
+//	    locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+//	    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+//	}
 }
