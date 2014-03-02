@@ -100,15 +100,39 @@ public class MainActivity extends Activity {
         		
         		File zip1 = new File(Environment.getExternalStorageDirectory()+"/osmdroid/taipei_1.zip");
         		File zip2 = new File(Environment.getExternalStorageDirectory()+"/osmdroid/taipei_2.zip");
+        		File zip3 = new File(Environment.getExternalStorageDirectory()+"/osmdroid/taipei_3.zip");
+        		
+        		boolean isRestart=false;
+        		
+        		//remove old map cache
+        		if(zip1.exists())
+        		{
+        			zip1.delete();
+        			isRestart=true;
+        		}
+        		if(zip2.exists())
+        		{
+        			zip2.delete();
+        			isRestart=true;
+        		}
+        		
         		//check whether the map data exist
-        		if(!zip1.exists() || !zip2.exists())
+        		if(!zip3.exists())
         		{
         			Log.d(TAG, "map data not found");
         			
-        			copyFile(getResources().openRawResource(R.raw.taipei_1), zip1);
-        			copyFile(getResources().openRawResource(R.raw.taipei_2), zip2);
+//        			copyFile(getResources().openRawResource(R.raw.taipei_1), zip1);
+//        			copyFile(getResources().openRawResource(R.raw.taipei_2), zip2);
+        			
+        			//new map tiles cater for larger area
+        			copyFile(getResources().openRawResource(R.raw.taipei_3), zip3);
 
-        			//restart activity to load the map tiles
+        			isRestart=true;
+        		}
+        		
+        		//restart activity to reload the map tiles
+        		if(isRestart)
+        		{
         			Log.d(TAG, "restart activity");
         			Intent i = getBaseContext().getPackageManager().getLaunchIntentForPackage( getBaseContext().getPackageName() );
         			i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -132,7 +156,7 @@ public class MainActivity extends Activity {
         mapView.setMaxZoomLevel(16);
         
         //map range limit
-        BoundingBoxE6 boundingBox = new BoundingBoxE6(25.10, 121.645, 24.98, 121.48);
+        BoundingBoxE6 boundingBox = new BoundingBoxE6(25.16, 121.645, 24.93, 121.46);
         mapView.setScrollableAreaLimit(boundingBox);
         
         mapView.setUseDataConnection(false);
@@ -158,8 +182,7 @@ public class MainActivity extends Activity {
         	{
         		currentLocation = new GeoPoint(location.getLatitude(), location.getLongitude());
 //        		currentLocation =  new GeoPoint((int) (25.0412 * 1E6), (int) (121.5407 * 1E6));
-        		//TODO attribute icon marker from https://www.iconfinder.com/iconsets/Map-Markers-Icons-Demo-PNG
-        		//TODO credit bicycle icon http://www.softicons.com/
+        		
         		//first marker in items is the user location
         		Drawable pinkMarker = getResources().getDrawable(R.drawable.pink_marker);
         		ExtendedOverlayItem currentLocationMarker = new ExtendedOverlayItem("你在這裡", "", currentLocation, this);
@@ -320,7 +343,7 @@ public class MainActivity extends Activity {
         switch (item.getItemId()) {
             case R.id.action_credits:
             	new AlertDialog.Builder(this)
-        	    .setMessage("Thanks to www.iconfinder.com, www.softicons.com and www.iconarchive.com for the beautiful icons")
+        	    .setMessage("Map data taken from OpenStreetMap. Thanks to www.iconfinder.com, www.softicons.com and www.iconarchive.com for the beautiful icons")
         	    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
         	        public void onClick(DialogInterface dialog, int which) { 
         	        	//do nothing
@@ -331,6 +354,13 @@ public class MainActivity extends Activity {
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+    
+    @Override
+	protected void onResume() {
+		super.onResume();
+		
+		//TODO resume location manager
     }
     
 	@Override
